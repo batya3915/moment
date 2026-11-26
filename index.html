@@ -568,15 +568,17 @@ else if(d&&d.freeUsed&&!paymentStatus.freeUsed){paymentStatus.freeUsed=true;lsSe
 else if(force){setTimeout(function(){refreshPaid(false)},3000)}
 }).catch(function(){})}
 function starsFlow(){
+var w=wa();
 var id=initData();
-if(!id){notice('Оплата Stars доступна внутри мини-аппа: открой приложение кнопкой меню бота.');return}
+var diag='WebApp:'+(w?'да':'нет')+' initData:'+(id?id.length+'симв':'пусто');
+toast('Диагност: '+diag);
+if(!id){notice('Telegram SDK не передал initData. Проверь: 1) кнопка меню бота настроена через /setmenubutton в BotFather, 2) сайт доступен из РФ. Сейчас оплата Stars недоступна.');return}
 var btn=document.getElementById('unlockProBtn');
 if(btn){btn.disabled=true;btn.textContent='Создаём счёт…'}
 fetch(SERVER+'?action=tg-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:id})})
 .then(function(r){return r.json()}).then(function(d){
 if(btn){btn.disabled=false;btn.textContent='⭐ PRO за Stars'}
 if(!d||!d.invoiceLink){notice('Не удалось создать счёт. Напиши боту /paysupport.');return}
-var w=wa();
 if(w&&typeof w.openInvoice==='function'){
 w.openInvoice(d.invoiceLink,function(st){
 if(st==='paid'){refreshPaid(true)}else{notice('Счёт не оплачен. Если Stars списались — напиши /paysupport, вернём.')}});
