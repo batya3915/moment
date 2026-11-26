@@ -531,36 +531,68 @@ ob(x,y,n);
 send('VKWebAppTapticImpactOccurred',{style:'light'})};
 });
 })();
-    // ---- TG Mini App layer ----
+// ---- TG Mini App layer v3 ----
 (function(){
 function inTG(){
 var q=location.search+location.hash;
-if(/[?&#]tgWebAppData=/.test(q))return true;
-return /telegram/i.test(navigator.userAgent||'')}
+if(/[?&#](tgWebAppData|tgWebAppVersion|tgWebAppPlatform)=/.test(q))return true;
+if(/telegram/i.test(navigator.userAgent||''))return true;
+try{if(window.TelegramWebviewProxy)return true}catch(e){}
+try{if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.TelegramWebviewProxy)return true}catch(e){}
+return false}
 if(!inTG())return;
+var SERVER='https://functions.yandexcloud.net/d4edlasmsjm5n6c0aa26';
 function wa(){return (window.Telegram&&window.Telegram.WebApp)||null}
 function bg(){return document.documentElement.getAttribute('data-theme')==='day'?'#f5f0e6':'#120d07'}
 function colors(w){try{w.setHeaderColor(bg());w.setBackgroundColor(bg())}catch(e){}}
-function notice(){
+function initData(){var w=wa();return (w&&w.initData)||''}
+function notice(msg){
 var el=document.getElementById('tgNotice');
 if(!el){
 el=document.createElement('div');el.id='tgNotice';el.className='payment-modal';
-el.innerHTML='<div class="payment-box"><h3>PRO в Telegram — скоро ⭐</h3>'+
-'<p style="color:var(--muted);font-size:13px;margin:8px 0">Оплата цифровых товаров внутри Telegram идёт только в Stars. Касса Stars подключается следующим шагом.</p>'+
-'<div class="payment-features"><div>Первая секретная открытка — бесплатно</div><div>Ссылка, таймер и QR уже работают</div><div>Шаринг сюрприза прямо в чат</div></div>'+
+el.innerHTML='<div class="payment-box"><h3>PRO в Telegram ⭐</h3>'+
+'<p id="tgNoticeText" style="color:var(--muted);font-size:13px;margin:8px 0"></p>'+
 '<button class="btn btn-primary" id="tgNoticeClose">Понятно</button></div>';
 document.body.appendChild(el);
 el.addEventListener('click',function(e){if(e.target.id==='tgNoticeClose'||e.target===el)el.classList.remove('open')});
 }
+var t=document.getElementById('tgNoticeText');
+if(t)t.textContent=msg||'Оплата цифровых товаров внутри Telegram идёт только в Stars.';
 el.classList.add('open')}
+function refreshPaid(force){
+var id=initData();if(!id)return;
+fetch(SERVER+'?action=tg-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:id})})
+.then(function(r){return r.json()}).then(function(d){
+if(d&&d.paid){paymentStatus.paid=true;unlockPro()}
+else if(d&&d.freeUsed&&!paymentStatus.freeUsed){paymentStatus.freeUsed=true;lsSet('freeUsed','true')}
+else if(force){setTimeout(function(){refreshPaid(false)},3000)}
+}).catch(function(){})}
+function starsFlow(){
+var id=initData();
+if(!id){notice('Оплата Stars доступна внутри мини-аппа: открой приложение кнопкой меню бота.');return}
+var btn=document.getElementById('unlockProBtn');
+if(btn){btn.disabled=true;btn.textContent='Создаём счёт…'}
+fetch(SERVER+'?action=tg-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:id})})
+.then(function(r){return r.json()}).then(function(d){
+if(btn){btn.disabled=false;btn.textContent='⭐ PRO за Stars'}
+if(!d||!d.invoiceLink){notice('Не удалось создать счёт. Напиши боту /paysupport.');return}
+var w=wa();
+if(w&&typeof w.openInvoice==='function'){
+w.openInvoice(d.invoiceLink,function(st){
+if(st==='paid'){refreshPaid(true)}else{notice('Счёт не оплачен. Если Stars списались — напиши /paysupport, вернём.')}});
+}else{
+try{window.open(d.invoiceLink,'_blank')}catch(e){}
+setTimeout(function(){refreshPaid(false)},4000)}
+}).catch(function(){
+if(btn){btn.disabled=false;btn.textContent='⭐ PRO за Stars'}
+notice('Ошибка сети при создании счёта.')})}
 function compliance(){
-var osm=showPaymentModal;
-showPaymentModal=function(){notice()};
+showPaymentModal=function(){starsFlow()};
 var ri=document.getElementById('restoreId');
 if(ri&&ri.parentNode)ri.parentNode.style.display='none';
 var pp=document.getElementById('proPassport');if(pp)pp.style.display='none';
 var ub=document.getElementById('unlockProBtn');
-if(ub)ub.textContent='⭐ PRO в Telegram — скоро'}
+if(ub)ub.textContent='⭐ PRO за Stars'}
 function init(){
 var w=wa();if(!w)return;
 try{w.ready();w.expand()}catch(e){}
@@ -581,7 +613,14 @@ return Promise.resolve()}}catch(e){}
 return os(ti,te)};
 var ob=burst;
 burst=function(x,y,n){ob(x,y,n);try{w.HapticFeedback.impactOccurred('light')}catch(e){}};
-try{w.BackButton.hide()}catch(e){}}
+var cs=createSecret;
+createSecret=async function(){
+var before=paymentStatus.freeUsed;
+await cs();
+if(!before&&paymentStatus.freeUsed){var id=initData();
+if(id){fetch(SERVER+'?action=tg-markfree',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:id})}).catch(function(){})}}};
+try{w.BackButton.hide()}catch(e){}
+refreshPaid(false)}
 window.addEventListener('load',function(){
 compliance();
 if(wa()){init();return}
