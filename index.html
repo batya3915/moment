@@ -544,7 +544,13 @@ function toast(m,label,fn){var s=$('#snack');$('#snackMsg').textContent=m;var b=
 if(label){b.style.display='';b.textContent=label;b.onclick=function(){fn();hideSnack()}}else b.style.display='none';
 s.classList.add('show');clearTimeout(snackT);snackT=setTimeout(hideSnack,label?6000:2600)}
 function hideSnack(){$('#snack').classList.remove('show');clearTimeout(snackT)}
-window.addEventListener('error',function(e){toast('Ошибка: '+(e.message||''))});
+window.addEventListener('error',function(e){
+if(e&&e.target&&e.target!==window)return;
+var m=(e&&e.message)||'';
+if(!m||m.indexOf('Script error')===0)return;
+if(!e.filename&&!e.lineno)return;
+toast('Ошибка: '+m);
+},true);
 
 var theme=lsGet('moment.theme')||'night';
 function applyTheme(t){theme=t==='day'?'day':'night';document.documentElement.setAttribute('data-theme',theme);lsSet('moment.theme',theme);
