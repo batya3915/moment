@@ -531,6 +531,67 @@ ob(x,y,n);
 send('VKWebAppTapticImpactOccurred',{style:'light'})};
 });
 })();
+    // ---- TG Mini App layer ----
+(function(){
+function inTG(){
+var q=location.search+location.hash;
+if(/[?&#]tgWebAppData=/.test(q))return true;
+return /telegram/i.test(navigator.userAgent||'')}
+if(!inTG())return;
+function wa(){return (window.Telegram&&window.Telegram.WebApp)||null}
+function bg(){return document.documentElement.getAttribute('data-theme')==='day'?'#f5f0e6':'#120d07'}
+function colors(w){try{w.setHeaderColor(bg());w.setBackgroundColor(bg())}catch(e){}}
+function notice(){
+var el=document.getElementById('tgNotice');
+if(!el){
+el=document.createElement('div');el.id='tgNotice';el.className='payment-modal';
+el.innerHTML='<div class="payment-box"><h3>PRO в Telegram — скоро ⭐</h3>'+
+'<p style="color:var(--muted);font-size:13px;margin:8px 0">Оплата цифровых товаров внутри Telegram идёт только в Stars. Касса Stars подключается следующим шагом.</p>'+
+'<div class="payment-features"><div>Первая секретная открытка — бесплатно</div><div>Ссылка, таймер и QR уже работают</div><div>Шаринг сюрприза прямо в чат</div></div>'+
+'<button class="btn btn-primary" id="tgNoticeClose">Понятно</button></div>';
+document.body.appendChild(el);
+el.addEventListener('click',function(e){if(e.target.id==='tgNoticeClose'||e.target===el)el.classList.remove('open')});
+}
+el.classList.add('open')}
+function compliance(){
+var osm=showPaymentModal;
+showPaymentModal=function(){notice()};
+var ri=document.getElementById('restoreId');
+if(ri&&ri.parentNode)ri.parentNode.style.display='none';
+var pp=document.getElementById('proPassport');if(pp)pp.style.display='none';
+var ub=document.getElementById('unlockProBtn');
+if(ub)ub.textContent='⭐ PRO в Telegram — скоро'}
+function init(){
+var w=wa();if(!w)return;
+try{w.ready();w.expand()}catch(e){}
+try{if(w.colorScheme==='light')applyTheme('day');else applyTheme('night')}catch(e){}
+colors(w);
+try{w.onEvent('themeChanged',function(){
+try{if(w.colorScheme==='light')applyTheme('day');else applyTheme('night')}catch(e){}
+colors(w)})}catch(e){}
+try{w.BackButton.onClick(function(){try{route('home')}catch(e){}})}catch(e){}
+var osv=showView;
+showView=function(id){osv(id);
+try{if(id==='home'||id==='reveal')w.BackButton.hide();else w.BackButton.show()}catch(e){}};
+var os=shareText;
+shareText=function(ti,te){
+try{if(w.openTelegramLink){
+w.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(te)+'&text='+encodeURIComponent(ti));
+return Promise.resolve()}}catch(e){}
+return os(ti,te)};
+var ob=burst;
+burst=function(x,y,n){ob(x,y,n);try{w.HapticFeedback.impactOccurred('light')}catch(e){}};
+try{w.BackButton.hide()}catch(e){}}
+window.addEventListener('load',function(){
+compliance();
+if(wa()){init();return}
+var s=document.createElement('script');
+s.src='https://telegram.org/js/telegram-web-app.js';
+s.onload=init;
+s.onerror=function(){};
+document.head.appendChild(s);
+});
+})();
 function $(s){return document.querySelector(s)}
 function $$(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
