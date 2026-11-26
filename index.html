@@ -481,26 +481,54 @@ document.addEventListener('click',function(e){var t=e.target;if(t&&t.closest&&t.
     // ---- VK Mini App layer ----
 (function(){
 function vb(){return window.vkBridge||null}
-function sup(m){var b=vb();if(!b)return false;
-try{return typeof b.supports==='function'?b.supports(m):true}catch(e){return true}}
-function send(m,p){var b=vb();if(!b||!sup(m))return Promise.resolve(null);
-try{var r=b.send(m,p||{});return (r&&r.catch)?r.catch(function(){return null}):Promise.resolve(r)}
-catch(e){return Promise.resolve(null)}}
-function bg(){return document.documentElement.getAttribute('data-theme')==='day'?'#f5f0e6':'#120d07'}
-function syncVK(){var night=document.documentElement.getAttribute('data-theme')!=='day';
-send('VKWebAppSetViewSettings',{status_bar_style:night?'light':'dark',
-action_bar_color:bg(),navigation_bar_color:bg()})}
-send('VKWebAppInit');
+function sup(m){
+var b=vb();if(!b)return false;
+try{
+return typeof b.supports==='function'?b.supports(m):true
+}catch(e){return true}}
+function send(m,p){
+var b=vb();if(!b||!sup(m))return Promise.resolve(null);
+try{
+var r=b.send(m,p||{});
+if(r&&r.catch)return r.catch(function(){return null});
+return Promise.resolve(r)
+}catch(e){return Promise.resolve(null)}}
+function bg(){
+var d=document.documentElement.getAttribute('data-theme');
+return d==='day'?'#f5f0e6':'#120d07'}
+function syncVK(){
+var d=document.documentElement.getAttribute('data-theme');
+send('VKWebAppSetViewSettings',{
+status_bar_style:d==='day'?'dark':'light',
+action_bar_color:bg(),
+navigation_bar_color:bg()})}
+function inVK(){
+var q=location.search+location.hash;
+if(/[?&#](vk_app_id|vk_platform|vk_user_id)=/.test(q))return true;
+return /vkandroid|vkios|vkclient/i.test(navigator.userAgent||'')}
+if(inVK()){
+var s=document.createElement('script');
+s.src='https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js';
+s.onload=function(){send('VKWebAppInit');syncVK()};
+s.onerror=function(){};
+document.head.appendChild(s)}
 syncVK();
-try{new MutationObserver(syncVK).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}
+try{
+new MutationObserver(syncVK).observe(
+document.documentElement,
+{attributes:true,attributeFilter:['data-theme']})
+}catch(e){}
 window.addEventListener('load',function(){
 syncVK();
 var os=shareText;
-shareText=function(ti,te){if(sup('VKWebAppShare')){
-return send('VKWebAppShare',{link:te}).then(function(r){return r===null?os(ti,te):r})}
-return os(ti,te)};
+shareText=function(ti,te){
+if(!sup('VKWebAppShare'))return os(ti,te);
+return send('VKWebAppShare',{link:te}).then(function(r){
+return r===null?os(ti,te):r})};
 var ob=burst;
-burst=function(x,y,n){ob(x,y,n);send('VKWebAppTapticImpactOccurred',{style:'light'})};
+burst=function(x,y,n){
+ob(x,y,n);
+send('VKWebAppTapticImpactOccurred',{style:'light'})};
 });
 })();
 function $(s){return document.querySelector(s)}
